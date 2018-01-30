@@ -1,0 +1,10 @@
+[package]
+name = "notify"
+version = "0.1.0"
+authors = ["Richard Artoul <richardartoul@gmail.com>"]
+
+[dependencies]
+
+ethabi = "5.0.1"
+rustc-hex = "1.0"
+reqwest = "0.8.4"
