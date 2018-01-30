@@ -1,8 +1,14 @@
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_json;
 extern crate ethabi;
 extern crate rustc_hex as hex;
 extern crate reqwest;
 
 use std::fs::File;
+use std::collections::HashMap;
 use hex::ToHex;
 use ethabi::param_type::ParamType;
 use ethabi::token::{Token, Tokenizer, StrictTokenizer, LenientTokenizer};
@@ -12,10 +18,31 @@ fn main() {
     let values: &Vec<String> = &vec![String::from("yolo")];
     println!("{}", encode_input("./src/abi.json", "set", values, false));
 
-    let mut resp = reqwest::get("https://www.rust-lang.org").unwrap();
-    assert!(resp.status().is_success());
-    let body = resp.text().unwrap();
-    println!("body = {:?}", body);
+    // Example of how to make JSON-RPC requests to POA network
+    // TODO: Proper error handling
+    // TODO: Call the correct JSON-RPC method
+    // TODO: Connection pooling
+    let mut map = HashMap::new();
+    map.insert("jsonrpc", "2.0");
+    map.insert("method", "web3_clientVersion");
+    map.insert("params", "[]");
+    map.insert("id", "67");
+
+    // TODO: Don't define inline
+    #[derive(Deserialize, Debug)]
+    struct TestJSONRPCResponse {
+        jsonrpc: String,
+        id: u32,
+    }
+
+    let client = reqwest::Client::new();
+    let response: TestJSONRPCResponse = client.post("https://sokol.poa.network")
+        .json(&map)
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    println!("body = {:?}", response);
 }
 
 // from: https://github.com/paritytech/ethabi/blob/master/cli/src/main.rs
