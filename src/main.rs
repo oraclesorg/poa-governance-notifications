@@ -23,10 +23,10 @@ fn main() {
     let encoded = encode_input("./src/abi.json", "message", values, false).unwrap();
     println!("{}", encoded);
 
-    make_eth_call();
+    make_eth_call(String::from("0x15d3122103c5c17ed791fd5a3dba847ecfd6037e"), String::from("0x") + &encoded);
 }
 
-fn make_eth_call() {
+fn make_eth_call(address: String, data: String) {
     // Example of how to make JSON-RPC requests to POA network
     // TODO: Proper error handling
     // TODO: Call the correct JSON-RPC method
@@ -58,8 +58,8 @@ fn make_eth_call() {
         jsonrpc: String::from("2.0"),
         method: String::from("eth_call"),
         params: (EthCallParams{
-            to: String::from("0x15d3122103c5c17ed791fd5a3dba847ecfd6037e"),
-            data: String::from("0xe21f37ce"),
+            to: address,
+            data: data,
         }, String::from("latest")),
         id: 1,
     };
