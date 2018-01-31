@@ -51,12 +51,8 @@ fn main() {
     println!("{:?}", response);
 }
 
+// TODO: Connection pooling / client re-use
 fn make_eth_call(address: String, data: String) -> Result<TestJSONRPCResponse, Error>{
-    // Example of how to make JSON-RPC requests to POA network
-    // TODO: Proper error handling
-    // TODO: Call the correct JSON-RPC method
-    // TODO: Connection pooling
-
     let client = reqwest::Client::new();
     let request = TestJSONRPCRequest{
         jsonrpc: String::from("2.0"),
