@@ -18,40 +18,44 @@ use ethabi::token::{Token, Tokenizer, StrictTokenizer, LenientTokenizer};
 use ethabi::{Contract, Function};
 use error::Error;
 
+#[derive(Serialize, Debug)]
+struct TestJSONRPCRequest {
+    jsonrpc: String,
+    method: String,
+    params: (EthCallParams, String),
+    id: u32,
+}
+
+#[derive(Serialize, Debug)]
+struct EthCallParams {
+    to: String,
+    data: String,
+}
+
+// TODO: Don't define inline
+#[derive(Deserialize, Debug)]
+struct TestJSONRPCResponse {
+    jsonrpc: String,
+    id: u32,
+    result: String,
+}
+
 fn main() {
-    let values: &Vec<String> = &vec![String::from("yolo")];
+    let values: &Vec<String> = &vec![];
+    // TODO: Config
     let encoded = encode_input("./src/abi.json", "message", values, false).unwrap();
     println!("{}", encoded);
 
-    make_eth_call(String::from("0x15d3122103c5c17ed791fd5a3dba847ecfd6037e"), String::from("0x") + &encoded);
+    // TODO: Config
+    let response = make_eth_call(String::from("0x15d3122103c5c17ed791fd5a3dba847ecfd6037e"), String::from("0x") + &encoded).unwrap();
+    println!("{:?}", response);
 }
 
-fn make_eth_call(address: String, data: String) {
+fn make_eth_call(address: String, data: String) -> Result<TestJSONRPCResponse, Error>{
     // Example of how to make JSON-RPC requests to POA network
     // TODO: Proper error handling
     // TODO: Call the correct JSON-RPC method
     // TODO: Connection pooling
-    #[derive(Serialize, Debug)]
-    struct TestJSONRPCRequest {
-        jsonrpc: String,
-        method: String,
-        params: (EthCallParams, String),
-        id: u32,
-    }
-
-    #[derive(Serialize, Debug)]
-    struct EthCallParams {
-        to: String,
-        data: String,
-    }
-
-    // TODO: Don't define inline
-    #[derive(Deserialize, Debug)]
-    struct TestJSONRPCResponse {
-        jsonrpc: String,
-        id: u32,
-        result: String,
-    }
 
     let client = reqwest::Client::new();
     let request = TestJSONRPCRequest{
@@ -63,13 +67,13 @@ fn make_eth_call(address: String, data: String) {
         }, String::from("latest")),
         id: 1,
     };
+
     let response: TestJSONRPCResponse = client.post("https://mainnet.infura.io/t2E4vz9RzvRmhJFyUwMq")
         .json(&request)
-        .send()
-        .unwrap()
-        .json()
-        .unwrap();
-    println!("body = {:?}", response);
+        .send()?
+        .json()?;
+    
+    Ok(response)
 }
 
 // from: https://github.com/paritytech/ethabi/blob/master/cli/src/main.rs

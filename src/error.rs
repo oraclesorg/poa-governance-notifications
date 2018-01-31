@@ -1,5 +1,5 @@
 use std::io;
-use {ethabi, hex};
+use {ethabi, hex, reqwest};
 
 error_chain! {
 	links {
@@ -9,5 +9,6 @@ error_chain! {
 	foreign_links {
 		Io(io::Error);
 		Hex(hex::FromHexError);
+    Reqwest(reqwest::Error);
 	}
 }
