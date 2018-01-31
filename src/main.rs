@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate error_chain;
 
 extern crate serde;
 extern crate serde_json;
@@ -7,16 +9,20 @@ extern crate ethabi;
 extern crate rustc_hex as hex;
 extern crate reqwest;
 
+mod error;
+
 use std::fs::File;
 use std::collections::HashMap;
 use hex::ToHex;
 use ethabi::param_type::ParamType;
 use ethabi::token::{Token, Tokenizer, StrictTokenizer, LenientTokenizer};
 use ethabi::{Contract, Function};
+use error::Error;
 
 fn main() {
     let values: &Vec<String> = &vec![String::from("yolo")];
-    println!("{}", encode_input("./src/abi.json", "set", values, false));
+    let encoded = encode_input("./src/abi.json", "set", values, false).unwrap();
+    println!("{}", encoded);
 
     // Example of how to make JSON-RPC requests to POA network
     // TODO: Proper error handling
@@ -50,8 +56,8 @@ fn main() {
 // which we'd like to encode input, and the values of the arguments we want to encode
 // for the specified function (in the order that the parameters of the function
 // are defined)
-fn encode_input(path: &str, function: &str, values: &[String], lenient: bool) -> String {
-    let function = load_function(path, function);
+fn encode_input(path: &str, function: &str, values: &[String], lenient: bool) -> Result<String, Error> {
+    let function = load_function(path, function)?;
 
     // Zip the functions parameters together with their values (arguments in the form of &str)
     let params: Vec<_> = function.inputs.iter()
@@ -60,20 +66,21 @@ fn encode_input(path: &str, function: &str, values: &[String], lenient: bool) ->
         .collect();
 
     let tokens = parse_tokens(&params, lenient);
-    let result = function.encode_input(&tokens).unwrap();
-    result.to_hex()
+    let result = function.encode_input(&tokens)?;
+    Ok(result.to_hex())
 }
 
 // from: https://github.com/paritytech/ethabi/blob/master/cli/src/main.rs
 // TODO: Figure out how to return a result instead of force unwrapping
 // load_function accepts a path to a JSON ABI file and the name of the function
 // to load, and returns a Function which can be used to encode the desired input.
-fn load_function(path: &str, function: &str) -> Function {
+fn load_function(path: &str, function: &str) -> Result<Function, Error> {
     // ? is syntactic sugar which will early return with an error if the operation
     // fails.
     let file = File::open(path).unwrap();
-    let contract = Contract::load(file).unwrap();
-    contract.function(function).unwrap().clone()
+    let contract = Contract::load(file)?;
+    let function = contract.function(function)?.clone();
+    Ok(function)
 }
 
 // from: https://github.com/paritytech/ethabi/blob/master/cli/src/main.rs
@@ -84,6 +91,7 @@ fn load_function(path: &str, function: &str) -> Function {
 fn parse_tokens(params: &[(ParamType, &str)], lenient: bool) -> Vec<Token> {
     params.iter()
         .map(|&(ref param, value)| match lenient {
+            // TODO: Don't unwrap here
             true => LenientTokenizer::tokenize(param, value).unwrap(),
             false => StrictTokenizer::tokenize(param, value).unwrap()
         })
