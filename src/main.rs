@@ -12,7 +12,6 @@ extern crate reqwest;
 mod error;
 
 use std::fs::File;
-use std::collections::HashMap;
 use hex::ToHex;
 use ethabi::param_type::ParamType;
 use ethabi::token::{Token, Tokenizer, StrictTokenizer, LenientTokenizer};
@@ -21,29 +20,51 @@ use error::Error;
 
 fn main() {
     let values: &Vec<String> = &vec![String::from("yolo")];
-    let encoded = encode_input("./src/abi.json", "set", values, false).unwrap();
+    let encoded = encode_input("./src/abi.json", "message", values, false).unwrap();
     println!("{}", encoded);
 
+    make_eth_call();
+}
+
+fn make_eth_call() {
     // Example of how to make JSON-RPC requests to POA network
     // TODO: Proper error handling
     // TODO: Call the correct JSON-RPC method
     // TODO: Connection pooling
-    let mut map = HashMap::new();
-    map.insert("jsonrpc", "2.0");
-    map.insert("method", "web3_clientVersion");
-    map.insert("params", "[]");
-    map.insert("id", "67");
+    #[derive(Serialize, Debug)]
+    struct TestJSONRPCRequest {
+        jsonrpc: String,
+        method: String,
+        params: (EthCallParams, String),
+        id: u32,
+    }
+
+    #[derive(Serialize, Debug)]
+    struct EthCallParams {
+        to: String,
+        data: String,
+    }
 
     // TODO: Don't define inline
     #[derive(Deserialize, Debug)]
     struct TestJSONRPCResponse {
         jsonrpc: String,
         id: u32,
+        result: String,
     }
 
     let client = reqwest::Client::new();
-    let response: TestJSONRPCResponse = client.post("https://sokol.poa.network")
-        .json(&map)
+    let request = TestJSONRPCRequest{
+        jsonrpc: String::from("2.0"),
+        method: String::from("eth_call"),
+        params: (EthCallParams{
+            to: String::from("0x15d3122103c5c17ed791fd5a3dba847ecfd6037e"),
+            data: String::from("0xe21f37ce"),
+        }, String::from("latest")),
+        id: 1,
+    };
+    let response: TestJSONRPCResponse = client.post("https://mainnet.infura.io/t2E4vz9RzvRmhJFyUwMq")
+        .json(&request)
         .send()
         .unwrap()
         .json()
