@@ -18,31 +18,31 @@ use ethabi::token::{Token, Tokenizer, StrictTokenizer, LenientTokenizer};
 use ethabi::{Contract, Function};
 use error::Error;
 
+// Structure of JSON RPC Request
 #[derive(Serialize, Debug)]
-struct TestJSONRPCRequest {
+struct JSONRPCRequest {
     jsonrpc: String,
     method: String,
     params: (EthCallParams, String),
     id: u32,
 }
 
+// Structure of a JSON RPC Response
+#[derive(Deserialize, Debug)]
+struct JSONRPCResponse {
+    jsonrpc: String,
+    id: u32,
+    result: String,
+}
+
+// Structure of the parameters for a JSON RPC Request of type eth_Call
 #[derive(Serialize, Debug)]
 struct EthCallParams {
     to: String,
     data: String,
 }
 
-// TODO: Don't define inline
-#[derive(Deserialize, Debug)]
-struct TestJSONRPCResponse {
-    jsonrpc: String,
-    id: u32,
-    result: String,
-}
-
 fn main() {
-    // 0x0d7590c7aedf1e7e85fc9a1ee88f6f17d3ba762f
-    // https://raw.githubusercontent.com/poanetwork/poa-chain-spec/sokol/abis/VotingToChangeKeys.abi.json
     let values: &Vec<String> = &vec![];
     // TODO: Config
     let abi_file = "./src/voting_to_change_keys.abi.json";
@@ -64,9 +64,9 @@ fn main() {
 }
 
 // TODO: Connection pooling / client re-use
-fn make_eth_call(address: String, data: String) -> Result<TestJSONRPCResponse, Error>{
+fn make_eth_call(address: String, data: String) -> Result<JSONRPCResponse, Error>{
     let client = reqwest::Client::new();
-    let request = TestJSONRPCRequest{
+    let request = JSONRPCRequest{
         jsonrpc: String::from("2.0"),
         method: String::from("eth_call"),
         params: (EthCallParams{
@@ -76,7 +76,8 @@ fn make_eth_call(address: String, data: String) -> Result<TestJSONRPCResponse, E
         id: 1,
     };
 
-    let response: TestJSONRPCResponse = client.post("https://sokol.poa.network")
+    // TODO: Config
+    let response: JSONRPCResponse = client.post("https://sokol.poa.network")
         .json(&request)
         .send()?
         .json()?;
@@ -114,7 +115,6 @@ fn decode_output(path: &str, function: &str, data: &[u8]) -> Result<Vec<Token>, 
 }
 
 // from: https://github.com/paritytech/ethabi/blob/master/cli/src/main.rs
-// TODO: Figure out how to return a result instead of force unwrapping
 // load_function accepts a path to a JSON ABI file and the name of the function
 // to load, and returns a Function which can be used to encode the desired input.
 fn load_function(path: &str, function: &str) -> Result<Function, Error> {
@@ -126,6 +126,7 @@ fn load_function(path: &str, function: &str) -> Result<Function, Error> {
     Ok(function)
 }
 
+// TODO: Return result instead of force unwrapping
 // from: https://github.com/paritytech/ethabi/blob/master/cli/src/main.rs
 // parse_tokens accepts an array of tuples of (ParamType, &str) I.E the type
 // of the parameter we want to encode as well as its string representation
