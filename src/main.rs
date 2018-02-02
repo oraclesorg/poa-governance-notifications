@@ -41,15 +41,17 @@ struct TestJSONRPCResponse {
 }
 
 fn main() {
+    // 0x0d7590c7aedf1e7e85fc9a1ee88f6f17d3ba762f
+    // https://raw.githubusercontent.com/poanetwork/poa-chain-spec/sokol/abis/VotingToChangeKeys.abi.json
     let values: &Vec<String> = &vec![];
     // TODO: Config
-    let abi_file = "./src/abi.json";
-    let function_name = "message";
+    let abi_file = "./src/voting_to_change_keys.abi.json";
+    let function_name = "getBallotLimitPerValidator";
     let encoded = encode_input(abi_file, function_name, values, false).unwrap();
     println!("{}", encoded);
 
     // TODO: Config
-    let response = make_eth_call(String::from("0x15d3122103c5c17ed791fd5a3dba847ecfd6037e"), String::from("0x") + &encoded).unwrap();
+    let response = make_eth_call(String::from("0x49df4ec19243263e5db22da5865b4f482b8323a0"), String::from("0x") + &encoded).unwrap();
     println!("{:?}", response);
 
     // TODO: More efficient way to do this
@@ -74,7 +76,7 @@ fn make_eth_call(address: String, data: String) -> Result<TestJSONRPCResponse, E
         id: 1,
     };
 
-    let response: TestJSONRPCResponse = client.post("https://mainnet.infura.io/t2E4vz9RzvRmhJFyUwMq")
+    let response: TestJSONRPCResponse = client.post("https://sokol.poa.network")
         .json(&request)
         .send()?
         .json()?;
@@ -89,6 +91,7 @@ fn make_eth_call(address: String, data: String) -> Result<TestJSONRPCResponse, E
 // are defined)
 fn encode_input(path: &str, function: &str, values: &[String], lenient: bool) -> Result<String, Error> {
     let function = load_function(path, function)?;
+    println!(0);
 
     // Zip the functions parameters together with their values (arguments in the form of &str)
     let params: Vec<_> = function.inputs.iter()
@@ -96,8 +99,11 @@ fn encode_input(path: &str, function: &str, values: &[String], lenient: bool) ->
         .zip(values.iter().map(|v| v as &str))
         .collect();
 
+    println!(1);
     let tokens = parse_tokens(&params, lenient);
+    println!(2);
     let result = function.encode_input(&tokens)?;
+    println!(3);
     Ok(result.to_hex())
 }
 
