@@ -43,24 +43,52 @@ struct EthCallParams {
 }
 
 fn main() {
-    let values: &Vec<String> = &vec![];
+    let active_ballot = get_active_ballot_at_idx(1).unwrap();
+    println!("{:?}", active_ballot);
+
+    // let values2: &Vec<String> = &vec![String::from("2")];
+    // let encoded2 = encode_input(abi_file, "votingState", values2, true).unwrap();
+    // println!("{}", encoded2);
+
+    // let response2 = make_eth_call(String::from("0xc40cdf254a4a35498aa84f35e9842c110729a2a0"), String::from("0x") + &encoded2).unwrap();
+    // println!("{:?}", response);
+
+    // let mut result2 = response2.result.clone();
+    // result2.remove(0);
+    // result2.remove(0);
+    // let encoded_result2 = result2.from_hex().unwrap();
+    // let decoded_output2 = decode_output(abi_file, "votingState", &encoded_result2).unwrap();
+    // println!("{:?}", decoded_output2);
+}
+
+fn get_active_ballot_at_idx(idx: u64) -> Result<u64, Error>{
+    // Construction function call
+    let values: &Vec<String> = &vec![idx.to_string()];
     // TODO: Config
     let abi_file = "./src/voting_to_change_keys.abi.json";
-    let function_name = "getBallotLimitPerValidator";
-    let encoded = encode_input(abi_file, function_name, values, false).unwrap();
-    println!("{}", encoded);
+    let function_name = "activeBallots";
+    let encoded = encode_input(abi_file, function_name, values, true)?;
 
+    // Make JSON-RPC call
     // TODO: Config
-    let response = make_eth_call(String::from("0x49df4ec19243263e5db22da5865b4f482b8323a0"), String::from("0x") + &encoded).unwrap();
-    println!("{:?}", response);
+    let response = make_eth_call(String::from("0xc40cdf254a4a35498aa84f35e9842c110729a2a0"), String::from("0x") + &encoded)?;
 
-    // TODO: More efficient way to do this
+    // Decode result
+    // TODO: Optimize this
     let mut result = response.result.clone();
     result.remove(0);
     result.remove(0);
-    let encoded_result = result.from_hex().unwrap();
-    let decoded_output = decode_output(abi_file, function_name, &encoded_result).unwrap();
-    println!("{:?}", decoded_output);
+    let encoded_result = result.from_hex()?;
+
+    let result_tokens = decode_output(abi_file, function_name, &encoded_result)?;
+    if result_tokens.len() != 1 {
+        return Err("result of decode_ouput was not a vector of size 1".into())
+    }
+
+    match decode_output(abi_file, function_name, &encoded_result)?[0] {
+        Token::Uint(uint) => Ok(uint.as_u64()),
+        _ => Err("result of activeBallots at idx was not an int".into()),
+    }
 }
 
 // TODO: Connection pooling / client re-use
